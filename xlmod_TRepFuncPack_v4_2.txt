@@ -1,0 +1,316 @@
+Attribute VB_Name = "xlmod_TRepFuncPack_v4_2"
+'Conventions:
+'udf* - UserDefinedFunction
+'arr* - Array Variable
+'*buf* - buffer part for resulting variant
+'
+'Version History:
+'02.07.17 - v.2.1 - added udfJoinTwoArrays
+'07.07.17 - v.2.2 - added udfLastcellcatch and "Enum catch_types"
+'11.07.17 - v.2.3(1) - added udfOption_Admin_selection
+'22.07.17 - v.2.3(2) - included TransliterationMacro and udf_Translit_EN_to_RU( and "Enum catch_types"
+'09.08.17 - v.2.4 - added udfSplitArray
+'14.08.17 - v.3.0 - Added Separators for Sections of Areas of applicatiion
+'14.08.17 - v.3.1 - udf_Range_To_1D_Array reworked to support filtered ranges
+'           v.3.1 - udf_LastCellCatch fixed IsMissing for col_ind
+'06.09.17 - v.3.2 -  added ByVal for row and col indexes in udf_LastCellCatch
+'24.09.17 - v.3.3 -  added udf_Check_Open_WorkBook
+'           v.3.3 - corrected udf to udf_ in udf_Range_To_1D_Array
+'31.10.17 - v.3.4 - added table of contents
+'01.11.17 - v.3.5 - added udf_Clipboard_to_Array
+'26.12.17 - v.3.6 - added uds_Get_folder_structure
+'28.12.17 - v.3.7 - added udf_file_hand_Wldcrd_GetFileName
+'02.01.18 - v.3.8 - moved udf_Clipboard_to_Array to section "Array Processing Functions"
+'03.01.18 - v.3.9 - added: udf_Array_1d_Sort_as_text, udf_Array_Folded_Sort_as_text, uds_Array_to_Range, udf_Min
+'04.01.18 - v.4.0 - excluded: array processing functions moved to separate module
+'24.01.18 - v.4.1 - added: uds_StringToClipBoard
+'05.05.18 - v.4.2 - added: udf_RangeToHTML
+
+'Table of Contents:
+' --- Range Processing Functions
+'udf_CatchLastCell
+'udf_UsedRangeSelector
+'
+' --- Other Usefuls
+'udf_Check_Open_WorkBook
+'udf_CheckTableExist
+'TransliterationMacro()
+'udf_Translit_EN_to_RU
+'udf_Option_Admin_selection
+'uds_Get_folder_structure
+'udf_file_hand_Wldcrd_GetFileName
+'udf_Min
+'uds_StringToClipBoard
+'udf_RangeToHTML
+
+Public Enum catch_types
+    catch_row
+    catch_col
+End Enum
+'-------------------------------
+
+'-------------------------------
+' --- Range Processing Functions
+'-------------------------------
+
+Function udf_CatchLastCell(farg_TargetWorksheet, catch_what As catch_types, Optional ByVal col_ind As Variant, Optional ByVal row_ind As Long) As Range
+    
+    If Not IsMissing(col_ind) Then If Not IsNumeric(col_ind) Then col_ind = farg_TargetWorksheet.Range(col_ind & 1).Column
+    
+    Select Case catch_what
+        Case catch_row: Set udf_CatchLastCell = farg_TargetWorksheet.Cells(farg_TargetWorksheet.Rows.Count, col_ind).End(xlUp)
+        Case catch_col: Set udf_CatchLastCell = farg_TargetWorksheet.Cells(row_ind, farg_TargetWorksheet.Columns.Count).End(xlToLeft)
+    End Select
+
+End Function
+Function udf_UsedRangeSelector(strStartingCellAddress As String, shProcessingSheet As Worksheet, Optional lng_LastColumn As Long) As Range
+    
+    Set clStartingCell = shProcessingSheet.Range(strStartingCellAddress)
+    lngLastUsedRow = shProcessingSheet.Cells(shProcessingSheet.Rows.Count, clStartingCell.Column).End(xlUp).Row
+    If lng_LastColumn > 0 Then lngLastUsedColumn = lng_LastColumn Else _
+        lngLastUsedColumn = shProcessingSheet.Cells(clStartingCell.Row, shProcessingSheet.Columns.Count).End(xlToLeft).Column
+    Set clLastCellInRange = shProcessingSheet.Cells(lngLastUsedRow, lngLastUsedColumn)
+    Set rngUsedRange = shProcessingSheet.Range(clStartingCell, clLastCellInRange)
+
+Set udf_UsedRangeSelector = rngUsedRange
+
+End Function
+'-------------------------------
+
+'-------------------------------
+' --- Other Usefuls
+
+Function udf_Check_Open_WorkBook(wbName As String) As Boolean 'added in v.3.3
+
+    For Each wb In Application.Workbooks
+    
+        If wb.Name = wbName Then
+            udf_Check_Open_WorkBook = True
+        Else
+            udf_Check_Open_WorkBook = False
+        End If
+    
+    Next wb
+
+End Function
+Function udf_CheckTableExist(tablenametoCheck As String, WorkSheetToCheck As Worksheet)
+
+udf_CheckTableExist = False
+    
+    For Each ListObject In WorkSheetToCheck.ListObjects
+        If InStr(1, ListObject.Name, tablenametoCheck) > 0 Then udf_CheckTableExist = True
+    Next ListObject
+    
+End Function
+ Function udf_SheetExists(shtName As String, Optional wb As Workbook) As Boolean
+    Dim sht As Worksheet
+
+     If wb Is Nothing Then Set wb = ThisWorkbook
+     On Error Resume Next
+     Set sht = wb.Sheets(shtName)
+     On Error GoTo 0
+     udf_SheetExists = Not sht Is Nothing
+     
+ End Function
+ 
+Sub TransliterationMacro()
+
+Application.ScreenUpdating = False
+
+For Each cell In Selection: cell.Value = udf_Translit_EN_to_RU(cell.Value): Next cell
+
+Application.ScreenUpdating = True
+
+End Sub
+Function udf_Translit_EN_to_RU(Txt As String) As String
+ 
+ Dim Rus As Variant
+ Rus = Array("à", "á", "â", "ã", "ä", "å", "¸", "æ", "ç", "è", "é", "ê", _
+ "ë", "ì", "í", "î", "ï", "ð", "ñ", "ò", "ó", "ô", "õ", "ö", "÷", "ø", _
+ "ù", "ú", "û", "ü", "ý", "þ", "ÿ", "À", "Á", "Â", "Ã", "Ä", "Å", _
+ "¨", "Æ", "Ç", "È", "É", "Ê", "Ë", "Ì", "Í", "Î", "Ï", "Ð", _
+ "Ñ", "Ò", "Ó", "Ô", "Õ", "Ö", "×", "Ø", "Ù", "Ú", "Û", "Ü", "Ý", "Þ", "ß", "«", "»", ChrW(8220), ChrW(8221))
+ 
+ Dim Eng As Variant
+ Eng = Array("a", "b", "v", "g", "d", "e", "jo", "zh", "z", "i", "j", _
+ "k", "l", "m", "n", "o", "p", "r", "s", "t", "u", "f", "kh", "ts", "ch", _
+ "sh", "sch", "''", "y", "'", "e", "yu", "ya", "A", "B", "V", "G", "D", _
+ "E", "JO", "ZH", "Z", "I", "J", "K", "L", "M", "N", "O", "P", "R", _
+ "S", "T", "U", "F", "KH", "TS", "CH", "SH", "SCH", "''", "Y", "'", "E", "YU", "YA", """", """", """", """")
+ 
+ For i = 1 To Len(Txt)
+ ñ = Mid(Txt, i, 1)
+ 
+ flag = 0
+ For j = 0 To 69
+ If Rus(j) = ñ Then
+ outchr = Eng(j)
+ flag = 1
+ Exit For
+ End If
+ Next j
+If flag Then outstr = outstr & outchr Else outstr = outstr & ñ
+ Next i
+ 
+ udf_Translit_EN_to_RU = outstr
+End Function
+Function udf_Option_Admin_selection(admin_surname As String) As Boolean
+
+indPosComma = InStr(1, Application.UserName, ",")
+indPosDot = InStr(1, Application.UserName, ".")
+
+If indPosComma <> 0 Then
+    strUsername = Left(Application.UserName, indPosComma - 1)
+ElseIf indPosDot <> 0 Then
+    strUsername = Left(Application.UserName, indPosDot - 1)
+Else
+    strUsername = Application.InputBox("Can't Define Username. Enter your familyname manually")
+End If
+
+If strUsername = admin_surname Then udf_Option_Admin_selection = True
+
+End Function
+Function udf_ConvertTextToDates(farg_DateString As String, Optional farg_MonthFirst As Boolean = False) As Double
+    
+    'set date separator
+    If InStr(1, farg_DateString, ".") > 0 Then str_DateSep = "."
+    If InStr(1, farg_DateString, "/") > 0 Then str_DateSep = "/"
+    
+    If Not farg_MonthFirst Then
+    
+        lng_DayDigits = InStr(1, farg_DateString, str_DateSep) - 1
+        str_Day = Left(farg_DateString, lng_DayDigits)
+        
+        lng_MnthDigits = InStr(lng_DayDigits + 2, farg_DateString, str_DateSep) - lng_DayDigits - 2
+        str_Day = Mid(farg_DateString, lng_DayDigits + 2, lng_MnthDigits)
+        
+    ElseIf farg_MonthFirst Then
+        
+        lng_DayDigits = InStr(1, str_DateSep, farg_DateString) - 1
+        str_Day = Left(farg_DateString, lng_DayDigits)
+    
+    End If
+    dbl_DateOutput = 11111111111#
+    
+    udf_ConvertTextToDates = dbl_DateOutput
+
+End Function
+Sub test_udf_ConvertTextToDates()
+
+udf_ConvertTextToDates ("05.09.2017 04:23:31")
+
+End Sub
+Sub uds_Get_folder_structure(sarg_Folder_to_Check)
+    
+    Dim FileSystem As Object
+    Set FileSystem = CreateObject("Scripting.FileSystemObject")
+    uds_IterFolder FileSystem.GetFolder(sarg_Folder_to_Check)
+
+End Sub
+Sub uds_IterFolder(sarg_Folder_to_Check)
+    Dim SubFolder
+    For Each SubFolder In sarg_Folder_to_Check.SubFolders
+        uds_IterFolder SubFolder
+    Next
+    Dim File
+    For Each File In sarg_Folder_to_Check.Files
+        ' Operate on each file
+    Next
+End Sub
+Function udf_file_hand_Wldcrd_GetFileName(farg_FilePathToCheck, farg_FileNameString, Optional farg_ReturnFullPath As Boolean = True) As String
+
+'called from data_Update_Prime
+'called from ie_hand_click_Save
+Set objFSO = New Scripting.FileSystemObject
+
+Set clct_FilesToCheck = objFSO.GetFolder(farg_FilePathToCheck).Files
+
+On Error Resume Next
+
+udf_file_hand_Wldcrd_GetFileName = ""
+For Each file_FileToCheck In clct_FilesToCheck
+    If InStr(1, file_FileToCheck.Name, farg_FileNameString) > 0 And InStr(1, file_FileToCheck.Name, ".partial") = 0 Then
+        If farg_ReturnFullPath Then udf_file_hand_Wldcrd_GetFileName = file_FileToCheck.Path Else udf_file_hand_Wldcrd_GetFileName = file_FileToCheck.Name
+        Exit For
+    End If
+Next file_FileToCheck
+
+End Function
+Function udf_Min(ParamArray values() As Variant) As Variant
+   Dim minValue, Value As Variant
+   minValue = values(0)
+   For Each Value In values
+       If Value < minValue Then minValue = Value
+   Next
+   
+   udf_Min = minValue
+End Function
+Function udf_Max(ParamArray farg_Inputs())
+    dbl_Max = 0
+    For i = LBound(farg_Inputs) + 1 To UBound(farg_Inputs)
+        If farg_Inputs(i) > var_Max Then var_Max = farg_Inputs(i)
+    Next i
+    
+udf_Max = dbl_Max
+End Function
+Sub uds_StringToClipBoard(sarg_InputString)
+
+With New MSForms.DataObject
+    .SetText sarg_InputString
+    .PutInClipboard
+End With
+
+End Sub
+Function udf_RangeToHTML(rng As Range)
+' By Ron de Bruin
+    Dim fso As Object
+    Dim ts As Object
+    Dim TempFile As String
+    Dim TempWB As Workbook
+
+    TempFile = Environ$("temp") & "/" & Format(Now, "dd-mm-yy h-mm-ss") & ".htm"
+
+    'Copy the range and create a new workbook to past the data in
+    rng.Copy
+    Set TempWB = Workbooks.Add(1)
+    With TempWB.Sheets(1)
+        .Cells(1).PasteSpecial Paste:=8
+        .Cells(1).PasteSpecial xlPasteValues, , False, False
+        .Cells(1).PasteSpecial xlPasteFormats, , False, False
+        .Cells(1).Select
+        Application.CutCopyMode = False
+        On Error Resume Next
+        .DrawingObjects.Visible = True
+        .DrawingObjects.Delete
+        On Error GoTo 0
+    End With
+
+    'Publish the sheet to a htm file
+    With TempWB.PublishObjects.Add( _
+         SourceType:=xlSourceRange, _
+         Filename:=TempFile, _
+         Sheet:=TempWB.Sheets(1).Name, _
+         Source:=TempWB.Sheets(1).UsedRange.Address, _
+         HtmlType:=xlHtmlStatic)
+        .Publish (True)
+    End With
+
+    'Read all data from the htm file into RangetoHTML
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set ts = fso.GetFile(TempFile).OpenAsTextStream(1, -2)
+    udf_RangeToHTML = ts.ReadAll
+    ts.Close
+    udf_RangeToHTML = Replace(udf_RangeToHTML, "align=center x:publishsource=", _
+                          "align=left x:publishsource=")
+
+    'Close TempWB
+    TempWB.Close SaveChanges:=False
+
+    'Delete the htm file we used in this function
+    Kill TempFile
+
+    Set ts = Nothing
+    Set fso = Nothing
+    Set TempWB = Nothing
+    
+End Function
