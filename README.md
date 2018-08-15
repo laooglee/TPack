@@ -24,7 +24,7 @@
 '03.01.18 - v.3.9 - added: udf_Array_1d_Sort_as_text, udf_Array_Folded_Sort_as_text, uds_Array_to_Range, udf_Min\
 '04.01.18 - v.4.0 - excluded: array processing functions moved to separate module\
 '24.01.18 - v.4.1 - added: uds_StringToClipBoard\
-'05.05.18 - v.4.2 - added: udf_RangeToHTML\
+'05.05.18 - v.4.2 - added: udf_RangeToHTML
 
 'Table of Contents:\
 ' --- Range Processing Functions\
